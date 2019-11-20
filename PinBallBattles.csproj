@@ -41,10 +41,12 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Brick.cs" />
+    <Compile Include="Button.cs" />
     <Compile Include="Circle.cs" />
     <Compile Include="CollisionObject.cs" />
     <Compile Include="Game1.cs" />
-    <Compile Include="ICollision.cs" />
+    <Compile Include="GUIElement.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

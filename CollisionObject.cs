@@ -45,21 +45,11 @@ namespace PinBallBattles
 
         #region Forces
 
-        public virtual Vector2 RepelDirection(Vector2 testObject, float distance)
-        {
-            return new Vector2();
-        }
-
         #endregion
 
         #region Collision
 
-        public virtual bool HasCollidedCircle(float distance, float otherRaduis)
-        {
-            return false;
-        }
-
-        public virtual bool HasCollidedSquare(float distance)
+        public virtual bool HasCollided(float distance)
         {
             return false;
         }
@@ -86,8 +76,18 @@ namespace PinBallBattles
         }
 
         #endregion
-        
-        public Vector2 SetNormal(Vector2 velocity, float distance)
+
+        public Vector2 VectorDirection(Vector2 testObject)
+        {
+            Vector2 direction = new Vector2();
+
+            direction.X = Position.X - testObject.X;
+            direction.Y = Position.Y - testObject.Y;
+
+            return direction;
+        }
+
+        public Vector2 GetNormal(Vector2 velocity, float distance)
         {
             Vector2 normal = velocity / distance;
             return normal;

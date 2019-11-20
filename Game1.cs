@@ -2,6 +2,10 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
+enum GameState{
+	Menu, Ready, InGame, RoundEnd, GameEnd
+}
+
 namespace PinBallBattles
 {
 	public class Game1 : Game
@@ -10,8 +14,8 @@ namespace PinBallBattles
 		SpriteBatch spriteBatch;
 
 		Player[] players = new Player[2];
-		CollisionObject[] drawObjects = new CollisionObject[6];
-		CollisionObject[] objects = new CollisionObject[8];
+		CollisionObject[] drawObjects = new CollisionObject[22];
+		CollisionObject[] objects = new CollisionObject[24];
 
 		#region GameInit
 
@@ -20,8 +24,8 @@ namespace PinBallBattles
 			graphics = new GraphicsDeviceManager(this);
 			Content.RootDirectory = "Content";
 
-			graphics.PreferredBackBufferWidth = 800;
-			graphics.PreferredBackBufferHeight = 900;
+			graphics.PreferredBackBufferWidth = 1200;
+			graphics.PreferredBackBufferHeight = 1000;
 		}
 
 		/// <summary>
@@ -30,6 +34,7 @@ namespace PinBallBattles
 		/// related content.  Calling base.Initialize will enumerate through any components
 		/// and initialize them as well.
 		/// </summary>
+		
 		protected override void Initialize()
 		{
 
@@ -44,47 +49,50 @@ namespace PinBallBattles
 		{
 			spriteBatch = new SpriteBatch(GraphicsDevice);
 
-			Vector2 player1Pos = new Vector2(100, 100);
+			Vector2 player1Pos = new Vector2(300, 100);
 			Player player1 = new Player(Shape.Circle, player1Pos, 50, true, true);
 			player1.CreateTexture(GraphicsDevice);
-			objects[6] = player1;
+			objects[0] = player1;
 			players[0] = player1;
 
-			Vector2 player2Pos = new Vector2(400, 100);
+			Vector2 player2Pos = new Vector2(900, 100);
 			Player player2 = new Player(Shape.Circle, player2Pos, 50, true, false);
 			player2.CreateTexture(GraphicsDevice);
-			objects[7] = player2;
+			objects[1] = player2;
 			players[1] = player2;
 
 			LoadWalls();
-			LoadPegs();
+			//LoadPegs();
 		}
 
 		private void LoadWalls()
 		{
-			Vector2 wall1Pos = new Vector2(0, 450);
-			Square wall1 = new Square(Shape.Square, wall1Pos, 60, 900, false);
-			wall1.CreateTexture(GraphicsDevice);
-			objects[0] = wall1;
-			drawObjects[0] = wall1;
-
-			Vector2 wall2Pos = new Vector2(800, 450);
+			int count = 0;
+			for (int x = 200; x < 1001; x += 800)
+			{
+				for(int i = 0; i < drawObjects.Length / 2; i++)
+				{
+					Vector2 wall1Pos = new Vector2(x, i * 100);
+					Brick wall1 = new Brick(Shape.Square, wall1Pos, 40, 90, false);
+					wall1.CreateTexture(GraphicsDevice);
+				
+					objects[count + 2] = wall1;
+					drawObjects[count] = wall1;
+					count++;
+				}
+			}
+			
+			Vector2 wall2Pos = new Vector2(600, 1000);
 			Square wall2 = new Square(Shape.Square, wall2Pos, 60, 900, false);
 			wall2.CreateTexture(GraphicsDevice);
 			objects[1] = wall2;
 			drawObjects[1] = wall2;
 
-			Vector2 wall3Pos = new Vector2(400, 0);
+			Vector2 wall3Pos = new Vector2(600, 0);
 			Square wall3 = new Square(Shape.Square, wall3Pos, 800, 60, false);
 			wall3.CreateTexture(GraphicsDevice);
 			objects[2] = wall3;
 			drawObjects[2] = wall3;
-
-			Vector2 wall4Pos = new Vector2(400, 900);
-			Square wall4 = new Square(Shape.Square, wall4Pos, 800, 60, false);
-			wall4.CreateTexture(GraphicsDevice);
-			objects[3] = wall4;
-			drawObjects[3] = wall4;
 		}
 
 		private void LoadPegs()

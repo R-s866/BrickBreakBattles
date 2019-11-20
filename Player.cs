@@ -12,16 +12,20 @@ namespace PinBallBattles
 	class Player : Circle
 	{
 		MovementStates moveState = MovementStates.Normal;
+		private Vector2 velocity;
 
 		private int normalSpeed = 200;
 		private int dashSpeed = 600;
-		private Vector2 velocity;
+		private int gravityScale = 100;
+		private int bounceScale = 200;
 
 		private int shortTimer = 1000;
 		private int longTimer = 2000;
 		private bool test;
+		bool isBouncing = false;
 
 		public MovementStates MoveState { get => moveState; set => moveState = value; }
+		public Vector2 Gravity { get; } = new Vector2(0, 1);
 
 		#region Main
 
@@ -43,26 +47,54 @@ namespace PinBallBattles
 		public void MovementControl(GameTime gameTime, CollisionObject[] objects)
 		{
 			Vector2 newVelocity = new Vector2();
-
 			switch (moveState)
 			{
 				case MovementStates.Normal:
-					newVelocity += Input(normalSpeed);
-					newVelocity += ObjectCollision(objects, normalSpeed);
-					break;
+					newVelocity += Input() * normalSpeed;
+					newVelocity += ObjectCollision(objects) * normalSpeed;
+					if (isBouncing)
+					{
+						newVelocity += velocity * bounceScale;
+						if (CooldownTimer(gameTime, shortTimer))
+						{
+							isBouncing = false;
+						}
+					}
+					else
+					{
+						newVelocity += Gravity * gravityScale;
+					}
+					break;	// got a problem with gravity + going down
+							// which is a problem when i want them to dash
+							// in any direction
 				case MovementStates.Dash:
-					newVelocity += Input(dashSpeed);
-					newVelocity += ObjectCollision(objects, dashSpeed); // it here
+					newVelocity += Input() * dashSpeed; // may have to do this in two different functuresr
+														// one for normal inputs one for dash
+					newVelocity += ObjectCollision(objects) * dashSpeed;
+					if (isBouncing)
+					{
+						newVelocity += velocity * dashSpeed;
+						if (CooldownTimer(gameTime, shortTimer))
+						{
+							isBouncing = false;
+						}
+					}
+					else
+					{
+						newVelocity += Gravity * gravityScale;
+					}
 					break;
 				case MovementStates.ShortKnockBack:
-					newVelocity += velocity;
+					ObjectCollision(objects);
+					newVelocity += velocity * normalSpeed;
 					if (CooldownTimer(gameTime, shortTimer))
 					{
 						moveState = MovementStates.Normal;
 					}
 					break;
 				case MovementStates.LongKnockBack:
-					newVelocity += velocity;
+					ObjectCollision(objects);
+					newVelocity += velocity * dashSpeed;
 					if (CooldownTimer(gameTime, longTimer))
 					{
 						moveState = MovementStates.Normal;
@@ -70,7 +102,7 @@ namespace PinBallBattles
 					break;
 			}
 			if (!test)
-				Console.WriteLine(moveState);
+			Console.WriteLine(velocity);
 
 			Position += newVelocity * (float)gameTime.ElapsedGameTime.TotalSeconds;
 		}
@@ -79,22 +111,45 @@ namespace PinBallBattles
 
 		#region Force
 
-		public void SetVelocityAgainstPlayer(Vector2 playerPosition, float distance, float speed)
+		public Vector2 NormalRepel(Vector2 otherPosition, float distance)
 		{
-			velocity = RepelDirection(playerPosition, distance) * normalSpeed;
+			Vector2 direction =  VectorDirection(otherPosition);
+			return GetNormal(direction, distance);
 		}
-		// f() bounce off walls
 
-		// f() bounce off pegs
-
-		// f() jummp on pegs
+		public Vector2 WallRepel(Vector2 otherPosition, float distance)
+		{
+			Vector2 direction = VectorDirection(otherPosition);
+			direction = GetNormal(direction, distance);
+			
+			if (direction.X < 0)
+			{
+				velocity.X = -velocity.X;
+			}
+			else if (direction.X > 0)
+			{
+				velocity.X = Math.Abs(velocity.X);
+			}
+			if (direction.Y < 0)
+			{
+				velocity.Y = -velocity.Y;
+			}
+			else if (direction.Y > 0)
+			{
+				velocity.Y = Math.Abs(velocity.Y);
+			}
+			return velocity;
+		}
 
 		#endregion
 
 		#region MoveStateController
 
-		public void UpdateMoveState(MovementStates other)
+		public void UpdateMoveState(CollisionObject o)
 		{
+			Player p = (Player)o;
+			MovementStates other = p.moveState;
+
 			if (moveState == MovementStates.Dash
 			&& other == MovementStates.Dash)
 			{
@@ -110,6 +165,16 @@ namespace PinBallBattles
 			{
 				moveState = MovementStates.LongKnockBack;
 			}
+			/*else if (moveState == MovementStates.Dash
+			&& other == MovementStates.LongKnockBack)
+			{
+				moveState = MovementStates.ShortKnockBack;
+			}
+			else if (moveState == MovementStates.LongKnockBack
+			&& other == MovementStates.Dash)
+			{
+				moveState = MovementStates.LongKnockBack;
+			}*/
 			else
 			{
 				moveState = MovementStates.ShortKnockBack;
@@ -119,10 +184,9 @@ namespace PinBallBattles
 		#endregion
 
 		#region Collision
-
-		public Vector2 ObjectCollision(CollisionObject[] objects, float speed)
+		
+		public Vector2 ObjectCollision(CollisionObject[] objects)
 		{
-			// could i get this to output a velocity
 			foreach (CollisionObject o in objects)
 			{
 				if (o != this)
@@ -130,27 +194,43 @@ namespace PinBallBattles
 					if (o.Shape == Shape.Circle)
 					{
 						float checkDistance = o.GetDistance(Position);
-						bool hit = o.HasCollidedCircle(checkDistance, Radius);
+						Circle other = (Circle)o;
+						bool hit = HasCollided(checkDistance, other.Radius);
 						if (hit)
 						{
 							if (o.IsPlayer)
 							{
-								Player p = (Player)o;
-								UpdateMoveState(p.MoveState);
-								SetVelocityAgainstPlayer(o.Position, checkDistance, speed);
+								if (moveState == MovementStates.Normal
+								|| moveState == MovementStates.Dash)
+								{ // might have to change this to update while knockbacked
+									UpdateMoveState(o);
+								}
+								velocity = NormalRepel(o.Position, checkDistance);
 								break;
 							}
-							return RepelDirection(o.Position, checkDistance) * speed;
+							if (moveState == MovementStates.Normal
+								|| moveState == MovementStates.Dash)
+							{
+								isBouncing = true;
+							}
+							velocity = NormalRepel(o.Position, checkDistance);
+							break;
 						}
 					}
 					if (o.Shape == Shape.Square)
 					{
 						Vector2 closestEdge = o.ClosestEdge(Position);
 						float checkDistance = GetDistance(closestEdge);
-						bool hit = HasCollidedSquare(checkDistance);
+						bool hit = HasCollided(checkDistance);
 						if (hit)
 						{
-							return RepelDirection(closestEdge, checkDistance) * speed;
+							if (moveState == MovementStates.ShortKnockBack 
+								|| moveState == MovementStates.LongKnockBack)
+							{
+								velocity = WallRepel(closestEdge, checkDistance);
+								break;
+							}
+							return NormalRepel(closestEdge, checkDistance);
 						}
 					}
 
@@ -163,9 +243,8 @@ namespace PinBallBattles
 
 		#region Inputs
 
-		private Vector2 Input(float speed)
+		private Vector2 Input()
 		{
-			// should try to normalise this
 			Vector2 inputPos = new Vector2();
 			var keyboard = Keyboard.GetState();
 			if (test)
@@ -187,9 +266,6 @@ namespace PinBallBattles
 					inputPos.Y -= 1;
 				}
 
-				//float distance = GetDistance(Position + inputPos);
-				//inputPos = SetNormal(inputPos, distance);
-
 				if (keyboard.IsKeyDown(Keys.Space))
 				{
 					moveState = MovementStates.Dash;
@@ -200,9 +276,14 @@ namespace PinBallBattles
 				}
 			}
 
-			return inputPos * speed;
-		}
+			if (inputPos != Vector2.Zero)
+			{
+				float distance = GetDistance(Position + inputPos);
+				inputPos = GetNormal(inputPos, distance);
+			}
 
+			return inputPos;
+		}
 		#endregion
 	}
 }

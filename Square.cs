@@ -50,19 +50,13 @@ namespace PinBallBattles
 
         #region Forces
 
-        public override Vector2 RepelDirection(Vector2 testObject, float distance)
-        {
-            Vector2 direction = new Vector2();
-
-            direction.X = Position.X - testObject.X;
-            direction.Y = Position.Y - testObject.Y;
-
-            return direction / distance;
-        }
-
         #endregion
 
         #region Collision
+
+        #endregion
+
+        #region PositionalChecks
 
         public override Vector2 ClosestEdge(Vector2 testObject)
         {

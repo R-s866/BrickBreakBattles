@@ -57,22 +57,13 @@ namespace PinBallBattles
         #endregion
 
         #region Forces
-
-        public override Vector2 RepelDirection(Vector2 testObject, float distance)
-        {
-            Vector2 direction = new Vector2();  
-
-            direction.X = Position.X - testObject.X;
-            direction.Y = Position.Y - testObject.Y;
-            
-            return direction / distance; 
-        }
+        
 
         #endregion
 
         #region Collision
 
-        public override bool HasCollidedSquare(float distance)
+        public override bool HasCollided(float distance)
         {
             // should be able to get the radius of the thing calling this
             if (distance <= radius)
@@ -82,7 +73,7 @@ namespace PinBallBattles
             return false;
         }
         
-        public override bool HasCollidedCircle(float distance, float otherRadius)
+        public bool HasCollided(float distance, float otherRadius)
         {
             // should be able to get the radius of the thing calling this
             if (distance <= radius + otherRadius)
